@@ -2,8 +2,8 @@
 dzVents script for Domoticz to request optimizer data from the SolarEdge website
 
 ## Status
-2020-05-18 : Initial commit, only happy flow and hard configurations, one evening work...
-2020-05-21 : fixed issue with updating the energy usage for day statistics. (not fully tested yet)
+2020-05-18 : Initial commit, only happy flow and hard configurations, one evening work...  
+2020-05-21 : fixed issue with updating the energy usage for day statistics. (not fully tested yet)  
 
 ## Usage
 1. Create an new dzVents script in Domoticz
