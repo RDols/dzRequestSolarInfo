@@ -107,7 +107,7 @@ return
 	{
 		timer = 
 		{
-		    'every 1 minutes' 
+		    'every 5 minutes at civildaytime' 
 		},
 	    httpResponses = 
 	    { 
