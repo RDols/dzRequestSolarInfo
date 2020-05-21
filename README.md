@@ -13,5 +13,9 @@ dzVents script for Domoticz to request optimizer data from the SolarEdge website
 5. Add dummy devices for eacht optimizer and inverter type "Electric (instant+Counter)" Name is the name of optimizer or inverter  
   (Temporary uncomment lines 143 and 155 to figure the names)
   
+## Known Isuues
+ - It needs domoticz V4.11543
+ - Energy Usage is not updated correctly after 1 day.
+  
 ## Notes
 Code is free for use, but no guarantees
