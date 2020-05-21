@@ -1,7 +1,18 @@
 --------------------------------------------------------------------------------
+--Config
+local enableDebugPrint = true
+local isDecimalComma = true -- true for 1.000,00 :: false for 1,000.00 
+local username = "your@email.com"
+local password = "password"
+local siteID = "0000000"
+--------------------------------------------------------------------------------
+local function LogDebug(domoticz, log)
+    if enableDebugPrint then
+        print(string.format('dzRequestSolarInfo : %s', log))
+    end
+end
+--------------------------------------------------------------------------------
 local function MakeCleanNumber(dirtyNumber)
-    local isDecimalComma = true
-    
     if isDecimalComma then
         local value = dirtyNumber:gsub("%.", "")
         value = value:gsub(",", ".")
@@ -23,6 +34,7 @@ end
 local function AddReportInfo(json, component)
     local id = tostring(component.id)
     data = json.reportersInfo[id]
+    component.CurrentPower = 0
     if data then
         --component.LastMeasurement = data.lastMeasurement --Not updated by website, useless
         component.Name = data.name
@@ -78,9 +90,6 @@ local function GetInverterData(json, info, component)
 end
 --------------------------------------------------------------------------------
 local function RequestSolardEdge(domoticz)
-    local username = "your@email.com"
-    local password = "password"
-    local siteID = "0000000"
     
     local authorization = string.format("%s:%s", username, password)
     authorization = string.format("Basic %s", domoticz.utils.toBase64(authorization))
@@ -93,8 +102,18 @@ local function RequestSolardEdge(domoticz)
         url = url,
         method = 'GET',
         headers = headers,
-        callback = 'SolarEdgeWebRespondse'
+        callback = 'SolarEdgeWebResponse'
     })
+end
+--------------------------------------------------------------------------------
+local function UpdateDevice(domoticz, deviceType, device)
+    LogDebug(domoticz, string.format('%s "%s" Energy = %0.2f Wh   Current Power = %0.2f W', deviceType, device.Name, device.DayEnergy, device.CurrentPower))
+    if domoticz.utils.deviceExists(device.Name) then
+        local newTotalValue = domoticz.devices(device.Name).WhTotal - domoticz.devices(device.Name).WhToday + device.DayEnergy
+        domoticz.devices(device.Name).updateElectricity(device.CurrentPower, newTotalValue)
+    else
+        LogDebug(domoticz, string.format('to monitor create an dummy device type="Electric (Instant+Counter) name="%s"', device.Name))
+    end
 end
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
@@ -107,11 +126,11 @@ return
 	{
 		timer = 
 		{
-		    'every 5 minutes at civildaytime' 
+		    'every 1 minutes at civildaytime' 
 		},
 	    httpResponses = 
 	    { 
-	        'SolarEdgeWebRespondse' 
+	        'SolarEdgeWebResponse' 
 	    }
 	},
 --------------------------------------------------------------------------------
@@ -121,15 +140,12 @@ return
 --------------------------------------------------------------------------------
     execute = function(domoticz, item)
 --------------------------------------------------------------------------------
-        
-	    --print("dzRequestSolarInfo : -=[ Start ]===================================================")
-
         if (item.isTimer) then
+            LogDebug(domoticz, "-=[ Start HTTP Request]=======================================")
             RequestSolardEdge(domoticz)
         elseif (item.isHTTPResponse) then
+            LogDebug(domoticz, "-=[ Start HTTP Response ]=====================================")
             if (item.ok) then
-                
-                --print("dzRequestSolarInfo : Response OK")
                 local info = { Inverters = {}, Strings = {}, Optimizers = {} }
                 for _, child in pairs(item.json.logicalTree.children) do
                     local inverter = GetInverterData(item.json, info, child)
@@ -138,29 +154,22 @@ return
                     end
                 end
                 
-                local utils = domoticz.utils
-                for _, v in ipairs(info.Inverters) do
-                    --print(string.format("dzRequestSolarInfo : Inverter %s = %0.2f Wh", v.Name, v.DayEnergy or 0))
-                    if utils.deviceExists(v.Name) then
-                        domoticz.devices(v.Name).updateElectricity(v.CurrentPower, v.DayEnergy)
-                    end
+                for _, device in ipairs(info.Inverters) do
+                    UpdateDevice(domoticz, "Inverter", device)
                 end
-                for _, v in ipairs(info.Strings) do
-                    --print(string.format("dzRequestSolarInfo : String %s = %0.2f Wh", v.Name, v.DayEnergy or 0))
-                    if utils.deviceExists(v.Name) then
-                        domoticz.devices(v.Name).updateElectricity(v.CurrentPower, v.DayEnergy)
-                    end
+                
+                for _, device in ipairs(info.Strings) do
+                    UpdateDevice(domoticz, "String", device)
                 end
-                for _, v in ipairs(info.Optimizers) do
-                    --print(string.format("dzRequestSolarInfo : Optimizer %s = %0.2f Wh", v.Name, v.DayEnergy or 0))
-                    if utils.deviceExists(v.Name) then
-                        domoticz.devices(v.Name).updateElectricity(v.CurrentPower, v.DayEnergy)
-                    end
+                
+                for _, device in ipairs(info.Optimizers) do
+                    UpdateDevice(domoticz, "Optimizer", device)
                 end
+            else
+                LogDebug(domoticz, string.format("Error in HTTP request. Error %d - %s", item.statusCode, item.statusText))
             end
         end
   
-	    --print("dzRequestSolarInfo : -=[ End ]=====================================================")
-         
+        LogDebug(domoticz, "-=[ End ]=====================================================")
  	end
 }
