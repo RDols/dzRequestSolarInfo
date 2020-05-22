@@ -73,7 +73,7 @@ local function GetStringData(json, info, component)
 end
 --------------------------------------------------------------------------------
 local function GetInverterData(json, info, component)
-    if component.data and component.data.type == "INVERTER" then
+    if component.data and (component.data.type == "INVERTER" or component.data.type == "INVERTER_3PHASE") then
         local inverter = component.data
         AddReportData(json, inverter)
         AddReportInfo(json, inverter)
@@ -109,7 +109,8 @@ end
 local function UpdateDevice(domoticz, deviceType, device)
     LogDebug(domoticz, string.format('%s "%s" Energy = %0.2f Wh   Current Power = %0.2f W', deviceType, device.Name, device.DayEnergy, device.CurrentPower))
     if domoticz.utils.deviceExists(device.Name) then
-        local newTotalValue = domoticz.devices(device.Name).WhTotal - domoticz.devices(device.Name).WhToday + device.DayEnergy
+        --local newTotalValue = domoticz.devices(device.Name).WhTotal - domoticz.devices(device.Name).WhToday + device.DayEnergy
+        local newTotalValue = device.DayEnergy
         domoticz.devices(device.Name).updateElectricity(device.CurrentPower, newTotalValue)
     else
         LogDebug(domoticz, string.format('to monitor create an dummy device type="Electric (Instant+Counter) name="%s"', device.Name))
