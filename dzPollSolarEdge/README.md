@@ -10,7 +10,9 @@ https://github.com/tjko/sunspec-monitor
 ## Usage
 1. Create an new dzVents script in Domoticz
 2. Copy content of dzPollSolarEdge.lua into script
-3. Modify 
+3. Modify config block
+5. check the trigger, likely you need to change the P1 sensor
+4. Add virtual sensors
   
 ## Notes
 Code is free for use, but no guarantees
